@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Messenger v14.0</title>
+<style>
+:root { --green: #00ff88; --dark: #0a0a0a; --panel: #111; --border: #222; }
+* { box-sizing: border-box; transition: 0.1s ease; }
+body { margin: 0; background: #000; color: #eee; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
+#auth { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; z-index: 2000; }
+.box { background: var(--panel); padding: 30px; border-radius: 15px; width: 320px; display: flex; flex-direction: column; gap: 15px; border: 1px solid var(--border); }
+input, button { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: #1a1a1a; color: #fff; outline: none; }
+button { background: var(--green); color: #000; font-weight: bold; border: none; cursor: pointer; }
+button:hover { opacity: 0.85; }
+#sidebar { position: fixed; left: -280px; top: 0; bottom: 0; width: 280px; background: var(--dark); border-right: 1px solid var(--border); z-index: 1000; display: flex; flex-direction: column; transition: left 0.2s; }
+#sidebar.open { left: 0; box-shadow: 10px 0 50px #000; }
+.sb-header { padding: 12px 15px; font-weight: bold; border-bottom: 1px solid var(--border); color: var(--green); display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: 1px; }
+.list-area { flex: 1; overflow-y: auto; }
+.item { padding: 10px 15px; border-bottom: 1px solid #111; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.item:hover { background: #1a1a1a; }
+.item-av { width: 32px; height: 32px; border-radius: 50%; background: #222; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; overflow: hidden; }
+.item-av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.item-info { flex: 1; min-width: 0; }
+.item-name { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-sub { font-size: 10px; color: #555; }
+.badge { background: var(--green); color: #000; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: auto; flex-shrink: 0; }
+#main { flex: 1; display: flex; flex-direction: column; position: relative; }
+.header { padding: 12px 15px; background: var(--dark); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.burger { font-size: 24px; cursor: pointer; color: var(--green); }
+#header-av { width: 36px; height: 36px; border-radius: 50%; background: #222; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; flex-shrink: 0; overflow: hidden; }
+#header-info { flex: 1; min-width: 0; cursor: pointer; }
+#rtitle { font-weight: bold; font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#rsub { font-size: 11px; color: #555; display: block; }
+#msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.m { max-width: 85%; padding: 10px 15px; border-radius: 12px; background: #1a1a1a; align-self: flex-start; border: 1px solid var(--border); }
+.me { background: #004433; align-self: flex-end; border: none; }
+.m.editing { border: 1px solid var(--green) !important; }
+.u { font-size: 10px; opacity: 0.5; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+.u-av { width: 20px; height: 20px; border-radius: 50%; background: #333; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.u-av img { width: 100%; height: 100%; object-fit: cover; }
+.edited-mark { font-size: 10px; color: #555; margin-top: 3px; }
+.reply-preview { border-left: 3px solid var(--green); padding-left: 8px; margin-bottom: 6px; font-size: 11px; color: #777; }
+.video-circle
+
+
+-wrap { width: 200px; }
+.video-circle { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--green); display: block; background: #000; cursor: pointer; }
+#pre-box { display: none; padding: 10px; background: #111; border-top: 1px solid var(--border); }
+#pre-img { max-height: 100px; border-radius: 8px; display: none; }
+#reply-bar { display: none; padding: 8px 12px; background: #1a1a0a; border-top: 1px solid #555; font-size: 12px; color: #aaa; align-items: center; gap: 10px; }
+#edit-bar { display: none; padding: 8px 12px; background: #0a2a1a; border-top: 1px solid var(--green); font-size: 12px; color: var(--green); align-items: center; gap: 10px; }
+#reply-bar span, #edit-bar span { flex: 1; }
+.bar-c { padding: 10px; background: var(--dark); border-top: 1px solid var(--border); }
+.bar { display: flex; gap: 10px; align-items: center; }
+#in { flex: 1; border-radius: 20px; }
+.icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; padding: 0; }
+.icon-btn.active { color: #ff3b3b; animation: pulse 1s infinite; }
+.icon-btn.active-video { color: var(--green); animation: pulse 1s infinite; }
+@keyframes pulse { 0%{opacity:1}50%{opacity:0.3}100%{opacity:1} }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1500; display: none; align-items: center; justify-content: center; }
+.m-box { background: var(--panel); padding: 25px; border-radius: 20px; width: 90%; max-width: 380px; border: 1px solid var(--border); overflow-y: auto; max-height: 90vh; }
+.modal-title { font-size: 14px; font-weight: bold; color: var(--green); letter-spacing: 1px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+.modal-close { cursor: pointer; font-size: 18px; color: #555; }
+.profile-av-wrap { position: relative; width: 90px; height: 90px; margin: 0 auto 10px; }
+.profile-av { width: 90px; height: 90px; border-radius: 50%; border: 2px solid var(--green); object-fit: cover; display: block; background: #222; }
+.av-edit-btn { position: absolute; bottom: 0; right: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: #000; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; padding: 0; }
+.profile-name { text-align: center; font-size: 18px; font-weight: bold; margin: 5px 0 2px; }
+.profile-uid { text-align: center; color: var(--green); font-size: 12px; margin-bottom: 5px; }
+.profile-bio { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 10px; }
+.profile-status { text-align: center; font-size: 11px; color: #555; margin-bottom: 15px; }
+.edit-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.edit-form input, .edit-form textarea { width: 100%; font-size: 13px; }
+.edit-form textarea { resize: vertical; min-height: 60px; background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; color: #fff; padding: 10px; }
+.edit-form label { font-size: 11px; color: #555; margin-bottom: -5px; }
+.uid-display { background: #0a0a0a; border: 1px solid #222; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--green); display: flex; align-items: center; gap: 8px; }
+.status-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.status-chip { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; cursor: pointer; border: 1px solid var(--border); background: #1a1a1a; color: #aaa; }
+.status-chip.active { background: var(--green); color: #000; border-color: var(--green); }
+.btn-row { display: flex; gap: 10px; margin-top: 10px; }
+.btn-danger { background: #ff3333; color: #fff; }
+.btn-secondary { background: #1a1a1a; color: #eee; border: 1px solid var(--border); }
+.group-av { width: 70px; height: 70px; border-radius: 14px; border: 2px solid var(--green); background: #222; font-size: 28px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto 10px; }
+.group
+
+
+-av img { width: 100%; height: 100%; border-radius: 12px; object-fit: cover; }
+.members-list { margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+.member-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #111; }
+.member-row:last-child { border-bottom: none; }
+.member-av { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #222; flex-shrink: 0; }
+.member-info { flex: 1; min-width: 0; }
+.member-name { font-size: 13px; font-weight: bold; }
+.member-uid { font-size: 10px; color: #555; }
+.member-kick { background: none; border: none; color: #ff3333; cursor: pointer; font-size: 16px; padding: 2px 6px; }
+.owner-badge { font-size: 10px; color: var(--green); border: 1px solid var(--green); border-radius: 10px; padding: 1px 6px; }
+.invite-row { display: flex; gap: 8px; margin-top: 10px; }
+.invite-row input { flex: 1; font-size: 12px; padding: 8px 12px; }
+.invite-row button { padding: 8px 14px; font-size: 12px; }
+#join-requests-panel { position: fixed; top: 10px; right: 10px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; max-width: 320px; }
+.jreq-card { background: var(--panel); border: 1px solid var(--green); border-radius: 14px; padding: 14px 16px; font-size: 13px; }
+.jreq-title { font-weight: bold; color: var(--green); margin-bottom: 4px; font-size: 12px; }
+.jreq-text { margin-bottom: 10px; color: #ccc; }
+.jreq-btns { display: flex; gap: 8px; }
+.jreq-btns button { flex: 1; padding: 7px; font-size: 12px; border-radius: 8px; }
+.btn-reject { background: #ff3333; color: #fff; }
+#vid-rec-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2500; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+#vid-preview { width: 260px; height: 260px; border-radius: 50%; object-fit: cover; border: 4px solid var(--green); background: #000; transform: scaleX(-1); }
+#vid-rec-status { color: var(--green); font-weight: bold; font-size: 14px; }
+.vid-btns { display: flex; gap: 16px; }
+.vid-btns button { padding: 12px 24px; font-size: 14px; border-radius: 14px; }
+#overlay { display: none; position: fixed; inset: 0; z-index: 999; }
+#overlay.show { display: block; }
+#pb { height: 2px; background: var(--green); width: 0%; margin-bottom: 5px; transition: width 0.2s; }
+.preview-box { background: #1a1a1a; border-radius: 12px; padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); display: none; }
+#ctx-menu { position: fixed; z-index: 5000; background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 6px; min-width: 170px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); display: none; }
+.ctx-item { padding: 10px 14px; font-size: 13px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #eee; }
+.ctx-item:hover { background: #2a2a2a; }
+.ctx-item.danger { color: #ff4444; }
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="box">
+    <h2 id="atitle" style="text-align:center;color:var(--green);margin:0">ВХОД</h2>
+    <input type="text" id="l" placeholder="Логин">
+    <input type="password" id="p" placeholder="Пароль">
+    <button onclick="auth()">ГОТОВО</button>
+    <div style="text-align:center;font-size:12px;color:#555;cursor:pointer" onclick="isReg=!isReg;document.getElementById('atitle').innerText=isReg?'РЕГИСТРАЦИЯ':'ВХОД'">Сменить режим</div>
+  </div>
+</div>
+
+<div id="overlay" onclick="toggleSidebar(false)"></div>
+<div id="join-requests-panel"></div>
+
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-reply" onclick="ctxReply()">&#x21A9; Ответить</div>
+  <div class="ctx-item" id="ctx-edit" onclick="ctxEdit()">&#x270F; Редактировать</div>
+  <div class="ctx-item danger" id="ctx-delete" onclick="ctxDelete()">&#x2715; Удалить</div>
+</div>
+
+<div id="vid-rec-modal">
+  <video id="vid-preview" autoplay muted playsinline></video>
+  <div id="vid-rec-status">ГОТОВ К ЗАПИСИ</div>
+  <div class="vid-btns">
+    <button id="vid-start-btn" onclick="startVideoRec()">Записать</button>
+    <button id="vid-stop-btn" onclick="stopVideoRec()" style="display:none;background:#ff3333;color:#fff">Стоп</button>
+    <button onclick="closeVideoRec()" class="btn-secondary">Закрыть</button>
+  </div>
+</div>
+
+<div id="sidebar">
+  <div class="sb-header">ЧАТЫ <span onclick="toggleSidebar(false)" style="cursor:pointer">&#x2715;</span></div>
+  <div class="list-area" id="group-list"></div>
+  <div class="item" style="color:var(--green);border-top:1px solid var(--border)" onclick="openCreateGroup()">+ Создать группу</div>
+  <div class="item" style="color:#aaa;border-top:1px solid var(--border)" onclick="openJoinGroup()">Войти по ID</div>
+  <div class="sb-header" style="margin-top:0">В СЕТИ</div>
+  <div id="online-list" class="list-area"></div>
+  <div class="item" style="background:#050505;border-top:1px solid var(--border)" onclick="openMyProfile()">&#x2699; Мой профиль</div>
+</div>
+
+<div id="main">
+  <div class="header">
+    <div class="burger" onclick="toggleSidebar(true)">&#x2630;</div>
+    <div id="header-av" onclick="openCurRoomInfo()">&#x1F465;</div>
+    <div id="header-info" onclick="openCurRoomInfo()">
+      <span id="rtitle">Общий чат</span>
+      <span id="rsub">Нажмите для информации</span>
+    </div>
+  </div>
+  <div id="msgs"></div>
+  <div id="pre-box">
+    <img id="pre-img">
+    <div id="pre-name" style="font-size:11px;color:var(--green)"></div>
+    <button onclick="clearPre()" style="padding:2px 8px;font-size:10px;background:red;color:white;border:none;border-radius:5px;margin-top:5px">Удалить</button>
+  </div>
+  <div id="reply-bar">
+    <span id="reply-bar-text"></span>
+    <button onclick="cancelReply()" style="padding:4px 10px;font-size:11px;background:#333;color:#eee;">&#x2715;</button>
+  </div>
+  <div id="edit-bar">
+    <span id="edit-bar-text">Редактирование</span>
+    <button onclick="cancelEdit()" style="padding:4px 10px;font-size:11px;background:#333;color:#eee;">&#x2715;</button>
+  </div>
+  <div class="bar-c">
+    <div id="pb"></div>
+    <div class="bar">
+      <label for="f" style="cursor:pointer;font-size:20px">&#x1F4CE;</label>
+      <input type="file" id="f" hidden onchange="handlePre(this)">
+      <input type="text" id="in" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')send()">
+      <button class="icon-btn" id="vid-btn" onclick="openVideoRec()" title="Кружочек">&#x1F3A5;</button>
+      <button class="icon-btn" id="rec-btn" onclick="toggleRec()" title="Голосовое">&#x1F3A4;</button>
+      <button onclick="send()">&#x27A4;</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОЙ ПРОФИЛЬ -->
+<div id="m-myprofile" class="modal" onclick="this.style.display='none'">
+  <div class="m-box" onclick="event.stopPropagation()">
+    <div class="modal-title">МОЙ ПРОФИЛЬ <span class="modal-close" onclick="document.getElementById('m-myprofile').style.display='none'">&#x2715;</span></div>
+    <div class="profile-av-wrap">
+      <img id="my-av-img" class="profile-av" src="https://i.imgur.com/6VBx3io.png">
+      <button class="av-edit-btn" onclick="document.getElementById('av-file').click()">&#x270F;</button>
+      <input type="file" id="av-file" hidden accept="image/*" onchange="uploadAvatar(this)">
+    </div>
+    <div class="edit-form">
+      <label>Ваш ID (нельзя изменить)</label>
+      <div class="uid-display">&#x1F512; <span id="my-uid-display"></span></div>
+      <label>Отображаемое имя</label>
+      <input type="text" id="e-displayname" placeholder="Имя">
+      <label>О себе</label>
+      <textarea id="e-bio" placeholder="Расскажи о себе..."></textarea>
+      <label>Статус</label>
+      <div class="status-row" id="status-chips">
+        <div class="status-chip" data-s="online" onclick="pickStatus(this)">В сети</div>
+        <div class="status-chip" data-s="dnd" onclick="pickStatus(this)">Не беспокоить</div>
+        <div class="status-chip" data-s="invisible" onclick="pickStatus(this)">Невидимка</div>
+        <div class="status-chip" data-s="busy" onclick="pickStatus(this)">Занят</div>
+      </div>
+      <button onclick="saveMyProfile()">Сохранить</button>
+      <button class="btn-danger" onclick="logout()">Выйти</button>
+    </div>
+  </div>
+</div>
+
+<!-- ЧУЖОЙ ПРОФИЛЬ -->
+<div id="m-profile" class="modal" onclick="this.style.display='none'">
+  <div class="m-box" onclick="event.stopPropagation()">
+    <div class="modal-title">ПРОФИЛЬ <span class="modal-close" onclick="document.getElementById('m-profile').style.display='none'">&#x2715;</span></div>
+    <div class="profile-av-wrap">
+      <img id="p-av" class="profile-av" src="https://i.imgur.com/6VBx3io.png">
+    </div>
+    <div class="profile-name" id="p-name"></div>
+    <div class="profile-uid" id="p-uid"></div>
+    <div class="profile-status" id="p-status"></div>
+    <div class="profile-bio" id="p-bio"></div>
+    <div class="btn-row">
+      <button style="flex:1" onclick="startDM()">Написать ЛС</button>
+    </div>
+  </div>
+</div>
+
+<!-- СОЗДАТЬ ГРУППУ -->
+<div id="m-create-group" class="modal" onclick="this.style.display='none'">
+  <div class="m-box" onclick="event.stopPropagation()">
+    <div class="modal-title">НОВАЯ ГРУППА <span class="modal-close" onclick="document.getElementById('m-create-group').style.display='none'">&#x2715;</span></div>
+    <div class="edit-form">
+      <label>Название</label>
+      <input type="text" id="ng-name" placeholder="Название...">
+      <label>Описание</label>
+      <textarea id="ng-desc" placeholder="О чём эта группа?"></textarea>
+      <button onclick="createGroup()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- ВОЙТИ ПО ID -->
+<div id="m-join-group" class="modal" onclick="this.style.display='none'">
+  <div class="m-box" onclick="event.stopPropagation()">
+    <div class="modal-title">ВОЙТИ В ГРУППУ <span class="modal-close" onclick="document.getElementById('m-join-group').style.display='none'">&#x2715;</span></div>
+    <div class="edit-form">
+      <label>ID группы</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="join-gid" placeholder="room_xxxxxxxxx" style="flex:1">
+        <button onclick="lookupGroup()" style="padding:8px 14px;font-size:12px">Найти</button>
+      </div>
+      <div class="preview-box" id="join-preview">
+        <div style="font-weight:bold;font-size:16px" id="jp-name"></div>
+        <div style="font-size:12px;color:#777;margin-top:4px" id="jp-desc"></div>
+        <div style="font-size:11px;color:var(--green);margin-top:6px" id="jp-count"></div>
+        <button style="width:100%;margin-top:10px" onclick="sendJoinRequest()">Отправить заявку</button>
+      </div>
+      <div id="join-status" style="font-size:12px;color:#555;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ИНФО ГРУППЫ -->
+<div id="m-group-info" class="modal" onclick="this.style.display='none'">
+  <div class="m-box" onclick="event.stopPropagation()">
+    <div class="modal-title">ГРУППА <span class="modal-close" onclick="document.getElementById('m-group-info').style.display='none'">&#x2715;</span></div>
+    <div class="group-av" id="gi-av">&#x1F465;</div>
+    <div class="profile-name" id="gi-name"></div>
+    <div class="profile-uid" id="gi-id" style="color:#555;font-size:11px;text-align:center;margin-bottom:4px"></div>
+    <div class="profile-bio" id="gi-desc"></div>
+    <div id="gi-edit" style="display:none">
+      <div class="edit-form">
+        <label>Название</label><input type="text" id="gi-edit-name">
+        <label>Описание</label><textarea id="gi-edit-desc"></textarea>
+        <button onclick="saveGroupInfo()">Сохранить</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#555;margin:12px 0 5px;letter-spacing:1px">УЧАСТНИКИ</div>
+    <div class="members-list" id="gi-members"></div>
+    <div id="gi-invite" style="display:none">
+      <div class="invite-row">
+        <input type="text" id="gi-invite-uid" placeholder="UID (#0000)">
+        <button onclick="inviteUser()">+ Добавить</button>
+      </div>
+    </div>
+    <div
+
+
+id="gi-danger" style="display:none;margin-top:15px">
+      <button class="btn-danger" style="width:100%" onclick="deleteGroup()">Удалить группу</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let my = JSON.parse(localStorage.getItem('msgr_v14_user')), isReg = false;
+let curRoom = 'Main', curRoomName = 'Общий чат', curRoomOwner = '', curRoomIsDirect = false;
+let targetU = null, unread = {}, mediaRecorder, audioChunks = [], myStatus = 'online';
+let videoStream = null, videoRecorder = null, videoChunks = [];
+let ctxMsgId = null, ctxMsgUid = null, editingMsgId = null, replyToMsg = null;
+const notif = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+
+if (my) { document.getElementById('auth').style.display = 'none'; init(); }
+
+async function auth() {
+    const l = document.getElementById('l').value.trim(), p = document.getElementById('p').value;
+    if (!l || !p) return alert('Заполни все поля');
+    const res = await fetch('/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({login:l,password:p,isReg}) });
+    const data = await res.json();
+    if (data.error) return alert(data.error);
+    my = data; localStorage.setItem('msgr_v14_user', JSON.stringify(my)); location.reload();
+}
+function logout() { localStorage.removeItem('msgr_v14_user'); location.reload(); }
+function init() { socket.emit('set_online', my); switchRoom('Main','Общий чат','',false); }
+function toggleSidebar(st) {
+    document.getElementById('sidebar').classList.toggle('open', st);
+    document.getElementById('overlay').classList.toggle('show', st);
+}
+
+function switchRoom(id, name, owner, isDirect) {
+    curRoom=id; curRoomName=name; curRoomOwner=owner||''; curRoomIsDirect=!!isDirect;
+    unread[id]=0;
+    document.getElementById('rtitle').innerText = name;
+    document.getElementById('rsub').innerText = isDirect ? 'Личные сообщения' : (owner ? (owner===my.uid?'Вы владелец':'Участники') : 'Общий чат');
+    document.getElementById('header-av').innerText = isDirect ? '💬' : '👥';
+    document.getElementById('msgs').innerHTML = '';
+    cancelEdit(); cancelReply();
+    socket.emit('join', id);
+    toggleSidebar(false);
+    renderGroupList();
+}
+
+socket.on('my_groups', gs => { window._myGroups = gs; renderGroupList(); });
+
+function renderGroupList() {
+    const l = document.getElementById('group-list');
+    l.innerHTML = '';
+    const mainD = document.createElement('div');
+    mainD.className = 'item';
+    mainD.innerHTML = '<div class="item-av">🌐</div><div class="item-info"><div class="item-name">Общий чат</div><div class="item-sub">Все пользователи</div></div>';
+    mainD.onclick = () => switchRoom('Main','Общий чат','',false);
+    l.appendChild(mainD);
+    (window._myGroups||[]).forEach(g => {
+        const d = document.createElement('div');
+        d.className = 'item';
+        const icon = g.isDirect ? '💬' : '👥';
+        const badge = unread[g.groupId] ? '<span class="badge">'+unread[g.groupId]+'</span>' : '';
+        const sub = g.isDirect ? 'ЛС' : (g.owner===my.uid ? 'Вы владелец' : 'Участник');
+        d.innerHTML = '<div class="item-av">'+icon+'</div><div class="item-info"><div class="item-name">'+g.name+'</div><div class="item-sub">'+sub+'</div></div>'+badge;
+        d.onclick = () => switchRoom(g.groupId, g.name, g.owner, g.isDirect);
+        l.appendChild(d);
+    });
+}
+
+socket.on('update_online', us => {
+    const l = document.getElementById('online-list');
+    l.innerHTML = '';
+    us.forEach(u => {
+        if (u.uid === my.uid) return;
+        const d = document.createElement('div');
+        d.className = 'item';
+        const av = u.avatar ? '<img src="'+u.avatar+'">' : '👤';
+        d.innerHTML = '<div class="item-av">'+av+'</div><div class="item-info"><div class="item-name">'+(u.displayName||u.login)+'</div><div class="item-sub">'+u.uid+'</div></div>';
+        d.onclick = () => showUser(u.uid);
+        l.appendChild(d);
+    });
+});
+
+socket.on('renderMsg', m => {
+    if (m.room !== curRoom) { unread[m.room]=(unread[m.room]||0)+1; renderGroupList(); }
+    add(m, false);
+});
+socket.on('history', h => h.forEach(m => add(m, true)));
+socket.on('msg_deleted', ({msgId}) => { const el=document.getElementById('msg_'+msgId); if(el)el.remove(); });
+socket.on('msg_edited', ({msgId, newText}) => {
+    const el = document.getElementById('msg_'+msgId);
+    if (!el) return;
+    const t = el.querySelector('.msg-text');
+    if (t) t.innerHTML = escHtml(newText);
+    if (!el.querySelector('.edited-mark')) el.insertAdjacentHTML('beforeend','<div class="edited-mark">изменено</div>');
+});
+
+function add(m, hist) {
+    if (m.room !== curRoom) return;
+    const a = document.getElementById('msgs');
+    const d = document.createElement('div');
+    const isMe = m.uid === my.uid;
+    d.className = 'm' + (isMe ? ' me' : '');
+    d.id = 'msg_' + m._id;
+    d.dataset.msgid = m._id;
+    d.dataset.uid = m.uid;
+
+    const av = isMe && my.avatar ? '<img src="'+my.avatar+'">' : '👤';
+    let h = '<div class="u" onclick="showUser(\''+m.uid+'\')"><span class="u-av">'+av+'</span>'+(m.user||'')+' <span style="opacity:0.4">'+m.uid+'</span></div>';
+    if (m.replyTo) h += '<div class="reply-preview">'+escHtml(m.replyTo)+'</div>';
+    if (m.text) h += '<div class="msg-text">'+escHtml(m.text)+'</div>';
+    if (m.edited) h += '<div class="edited-mark">изменено</div>';
+    if (m.fileUrl) {
+        if (m.isVideo) h += '<div class="video-circle-wrap"><video class="video-circle" src="'+m.fileUrl+'" preload="metadata" onclick="this.paused?this.play():this.pause()" playsinline></video></div>';
+        else if (m.fileType&&m.fileType.includes('audio')) h += '<audio src="'+m.fileUrl+'" controls style="width:200px;height:30px"></audio>';
+        else if (m.fileType&&m.fileType.includes('image')) h += '<img src="'+m.fileUrl+'" style="max-width:100%;border-radius:10px;cursor:pointer" onclick="window.open(this.src)">';
+        else h += '<a href="'+m.fileUrl+'" target="_blank" style="color:var(--green);font-size:11px">Файл: '+(m.fileName||'')+'</a>';
+    }
+    d.innerHTML = h;
+    d.addEventListener('contextmenu', e => { e.preventDefault(); openCtxMenu(e, m._id, m.uid); });
+    d.addEventListener('touchstart', () => {
+        const t = setTimeout(() => openCtxMenu(null, m._id, m.uid), 600);
+        d.addEventListener('touchend', () => clearTimeout(t), {once:true});
+        d.addEventListener('touchmove', () => clearTimeout(t), {once:true});
+    });
+    a.appendChild(d);
+    a.scrollTop = a.scrollHeight;
+    if (!hist && !isMe) notif.play().catch(()=>{});
+}
+
+function escHtml(t) {
+    if (!t) return '';
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function openCtxMenu(e, msgId, msgUid) {
+    ctxMsgId = msgId; ctxMsgUid = msgUid;
+    const menu = document.getElementById('ctx-menu');
+    const isOwn = msgUid === my.uid;
+    document.getElementById('ctx-edit').style.display = isOwn ? 'flex' : 'none';
+    document.getElementById('ctx-delete').style.display = isOwn ? 'flex' : 'none';
+    menu.style.display = 'block';
+    menu.style.transform = '';
+    if (e) {
+        let x = e.clientX, y = e.clientY;
+        if (x+180>window.innerWidth) x=window.innerWidth-185;
+        if (y+160>window.innerHeight) y=window.innerHeight-165;
+        menu.style.left = x+'px'; menu.style.top = y+'px';
+    } else {
+        menu.style.left='50%'; menu.style.top='50%'; menu.style.transform='translate(-50%,-50%)';
+    }
+}
+document.addEventListener('click', e => {
+    const m = document.getElementById('ctx-menu');
+    if (!m.contains(e.target)) { m.style.display='none'; m.style.transform=''; }
+});
+
+function ctxReply() {
+    document.getElementById('ctx-menu').style.display='none';
+    const el = document.getElementById('msg_'+ctxMsgId); if(!el) return;
+    const t = el.querySelector('.msg-text');
+    const text = t ? t.innerText : '';
+    const u = el.querySelector('.u');
+    const name = u ? u.innerText.trim().split('\n')[0] : '';
+    replyToMsg = { text: name+': '+(text.length>50?text.substring(0,50)+'...':text) };
+    document.getElementById('reply-bar').style.display='flex';
+    document.getElementById('reply-bar-text').innerText = 'Ответ: '+replyToMsg.text;
+    document.getElementById('in').focus();
+}
+function cancelReply() { replyToMsg=null; document.getElementById('reply-bar').style.display='none'; }
+
+function ctxEdit() {
+    document.getElementById('ctx-menu').style.display='none';
+    const el = document.getElementById('msg_'+ctxMsgId); if(!el) return;
+    const t = el.querySelector('.msg-text'); if(!t) return;
+    if(editingMsgId) { const old=document.getElementById('msg_'+editingMsgId); if(old)old.classList.remove('editing'); }
+    editingMsgId = ctxMsgId;
+    el.classList.add('editing');
+    document.getElementById('in').value = t.innerText;
+    document.getElementById('edit-bar').style.display='flex';
+    document.getElementById('edit-bar-text').innerText = 'Редактирование: '+(t.innerText.length>40?t.innerText.substring(0,40)+'...':t.innerText);
+    document.getElementById('in').focus();
+}
+function cancelEdit() {
+    if(editingMsgId){const el=document.getElementById('msg_'+editingMsgId);if(el)el.classList.remove('editing');}
+    editingMsgId=null;
+    document.getElementById('edit-bar').style.display='none';
+    document.getElementById('in').value='';
+}
+function ctxDelete() {
+    document.getElementById('ctx-menu').style.display='none';
+    if(!confirm('Удалить сообщение?')) return;
+    socket.emit('delete_msg', {msgId:ctxMsgId, uid:my.uid});
+}
+
+function handlePre(input) {
+    const file=input.files[0]; if(!file) return;
+    document.getElementById('pre-box').style.display='block';
+    if(file.type.startsWith('image/')){
+        const r=new FileReader();r.onload=e=>{const img=document.getElementById('pre-img');img.src=e.target.result;img.style.display='block';};r.readAsDataURL(file);
+    } else { document.getElementById('pre-img').style.display='none'; document.getElementById('pre-name').innerText='Файл: '+file.name; }
+}
+function clearPre() {
+    document.getElementById('f').value='';
+    document.getElementById('pre-box').style.display='none';
+    document.getElementById('pre-img').style.display='none';
+    document.getElementById('pre-name').innerText='';
+}
+
+async function toggleRec() {
+    if(!mediaRecorder||mediaRecorder.state==='inactive'){
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder=new MediaRecorder(stream); audioChunks=[];
+        mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+        mediaRecorder.onstop=async()=>{
+            stream.getTracks().forEach(t=>t.stop());
+            const blob=new Blob(audioChunks,{type:'audio/ogg'});
+            const fd=new FormData();fd.append('file',blob,'voice.ogg');
+            const res=await fetch('/upload',{method:'POST',body:fd});
+            const fD=await res.json();
+            socket.emit('message',{user:my.displayName||my.login,uid:my.uid,room:curRoom,isVoice:true,...fD});
+            audioChunks=[];
+        };
+        mediaRecorder.start();
+        document.getElementById('rec-btn').classList.add('active');
+    } else { mediaRecorder.stop(); document.getElementById('rec-btn').classList.remove('active'); }
+}
+
+async function openVideoRec() {
+    try {
+        videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:400,height:400},audio:true});
+        document.getElementById('vid-preview').srcObject=videoStream;
+        document.getElementById('vid-rec-modal').style.display='flex';
+        document.getElementById('vid-rec-status').innerText='ГОТОВ К ЗАПИСИ';
+        document.getElementById('vid-start-btn').style.display='';
+        document.getElementById('vid-stop-btn').style.display='none';
+    } catch(e){alert('Нет доступа к камере');}
+}
+function startVideoRec() {
+    videoChunks=[];
+    const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?
+
+
+'video/webm;codecs=vp9,opus':'video/webm';
+    videoRecorder=new MediaRecorder(videoStream,{mimeType:mime});
+    videoRecorder.ondataavailable=e=>{if(e.data.size>0)videoChunks.push(e.data);};
+    videoRecorder.onstop=async()=>{
+        closeVideoRec();
+        const blob=new Blob(videoChunks,{type:'video/webm'});
+        const fd=new FormData();fd.append('file',blob,'circle.webm');
+        const res=await fetch('/upload',{method:'POST',body:fd});
+        const fD=await res.json();
+        socket.emit('message',{user:my.displayName||my.login,uid:my.uid,room:curRoom,isVideo:true,...fD});
+    };
+    videoRecorder.start();
+    document.getElementById('vid-rec-status').innerText='ЗАПИСЬ...';
+    document.getElementById('vid-start-btn').style.display='none';
+    document.getElementById('vid-stop-btn').style.display='';
+    document.getElementById('vid-btn').classList.add('active-video');
+}
+function stopVideoRec() { if(videoRecorder&&videoRecorder.state!=='inactive')videoRecorder.stop(); document.getElementById('vid-btn').classList.remove('active-video'); }
+function closeVideoRec() { if(videoStream){videoStream.getTracks().forEach(t=>t.stop());videoStream=null;} document.getElementById('vid-rec-modal').style.display='none'; }
+
+async function send() {
+    const txt=document.getElementById('in'), f=document.getElementById('f'), pb=document.getElementById('pb');
+    const text=txt.value.trim();
+    if(editingMsgId){
+        if(!text) return;
+        socket.emit('edit_msg',{msgId:editingMsgId,uid:my.uid,newText:text});
+        cancelEdit(); return;
+    }
+    if(!text&&!f.files[0]) return;
+    let fD=null;
+    if(f.files[0]){
+        const fd=new FormData();fd.append('file',f.files[0]);
+        fD=await new Promise(r=>{
+            const x=new XMLHttpRequest();x.open('POST','/upload');
+            x.upload.onprogress=e=>pb.style.width=(e.loaded/e.total*100)+'%';
+            x.onload=()=>{pb.style.width='0%';r(JSON.parse(x.responseText));};
+            x.send(fd);
+        });
+    }
+    const msg={user:my.displayName||my.login,uid:my.uid,text:txt.value,room:curRoom,...fD};
+    if(replyToMsg){msg.replyTo=replyToMsg.text;cancelReply();}
+    socket.emit('message',msg);
+    txt.value=''; clearPre();
+}
+
+let lookupGroupId=null;
+function openJoinGroup() {
+    document.getElementById('join-gid').value='';
+    document.getElementById('join-preview').style.display='none';
+    document.getElementById('join-status').innerText='';
+    lookupGroupId=null;
+    document.getElementById('m-join-group').style.display='flex';
+    toggleSidebar(false);
+}
+async function lookupGroup() {
+    const gid=document.getElementById('join-gid').value.trim();
+    document.getElementById('join-status').innerText='';
+    document.getElementById('join-preview').style.display='none';
+    if(!gid)return;
+    const res=await fetch('/group_info/'+gid);
+    if(!res.ok){document.getElementById('join-status').innerText='Группа не найдена';return;}
+    const g=await res.json();
+    lookupGroupId=g.groupId;
+    document.getElementById('jp-name').innerText=g.name;
+    document.getElementById('jp-desc').innerText=g.description||'';
+    document.getElementById('jp-count').innerText=g.memberCount+' участников';
+    document.getElementById('join-preview').style.display='block';
+}
+function sendJoinRequest() {
+    if(!lookupGroupId)return;
+    socket.emit('request_join',{groupId:lookupGroupId,fromUid:my.uid,fromName:my.displayName||my.login});
+}
+socket.on('join_requested',({groupName})=>{document.getElementById('join-status').innerText='Заявка отправлена в "'+groupName+'". Ждите.';document.getElementById('join-preview').style.display='none';});
+socket.on('join_error',msg=>document.getElementById('join-status').innerText=msg);
+socket.on('join_accepted',({groupName})=>showToast('Вас приняли в "'+groupName+'"!'));
+socket.on('join_rejected',({groupName})=>showToast('Заявка в "'+groupName+'" отклонена'));
+socket.on('join_request',req=>showJoinRequest(req));
+socket.on('pending_requests',reqs=>reqs.forEach(r=>showJoinRequest(r)));
+
+function showJoinRequest(req) {
+    const panel=document.getElementById('join-requests-panel');
+    const card=document.createElement('div');
+    card.className='jreq-card'; card.id='jreq_'+req._id;
+    card.innerHTML='<div class="jreq-title">ЗАЯВКА В ГРУППУ</div><div class="jreq-text"><b>'+req.fromName+'</b> '+req.fromUid+'
+хочет вступить в <b>'+(req.groupName||req.groupId)+'</b></div><div class="jreq-btns"><button onclick="handleJoin(\''+req._id+'\',true)">Принять</button><button class="btn-reject" onclick="handleJoin(\''+req._id+'\',false)">Отклонить</button></div>';
+    panel.appendChild(card);
+}
+function handleJoin(requestId,accept) {
+    socket.emit('handle_join',{requestId,accept,ownerUid:my.uid});
+    const c=document.getElementById('jreq_'+requestId);if(c)c.remove();
+}
+function showToast(msg) {
+    const t=document.createElement('div');
+    t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;border:1px solid var(--green);color:#eee;padding:10px 20px;border-radius:12px;font-size:13px;z-index:9999;max-width:280px;text-align:center';
+    t.innerText=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+
+function openMyProfile() {
+    document.getElementById('my-av-img').src=my.avatar||'https://i.imgur.com/6VBx3io.png';
+    document.getElementById('my-uid-display').innerText=my.uid;
+    document.getElementById('e-displayname').value=my.displayName||my.login;
+    document.getElementById('e-bio').value=my.bio||'';
+    myStatus=my.status||'online';
+    document.querySelectorAll('.status-chip').forEach(c=>c.classList.toggle('active',c.dataset.s===myStatus));
+    document.getElementById('m-myprofile').style.display='flex';
+}
+function pickStatus(el) { document.querySelectorAll('.status-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); myStatus=el.dataset.s; }
+async function uploadAvatar(input) {
+    const file=input.files[0];if(!file)return;
+    const fd=new FormData();fd.append('file',file);
+    const res=await fetch('/upload',{method:'POST',body:fd});
+    const data=await res.json();
+    document.getElementById('my-av-img').src=data.fileUrl;
+    my.avatar=data.fileUrl;
+}
+async function saveMyProfile() {
+    const displayName=document.getElementById('e-displayname').value.trim()||my.login;
+    const bio=document.getElementById('e-bio').value;
+    const res=await fetch('/update_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:my.uid,avatar:my.avatar,bio,displayName,status:myStatus})});
+    const updated=await res.json();
+    my={...my,...updated};
+    localStorage.setItem('msgr_v14_user',JSON.stringify(my));
+    document.getElementById('m-myprofile').style.display='none';
+    socket.emit('set_online',my);
+}
+
+async function showUser(uid) {
+    if(!uid)return;
+    if(uid===my.uid){openMyProfile();return;}
+    try {
+        const res=await fetch('/user/'+uid);
+        if(!res.ok)return;
+        const u=await res.json();
+        document.getElementById('p-av').src=u.avatar||'https://i.imgur.com/6VBx3io.png';
+        document.getElementById('p-name').innerText=u.displayName||u.login;
+        document.getElementById('p-uid').innerText=u.uid;
+        document.getElementById('p-status').innerText=u.status||'';
+        document.getElementById('p-bio').innerText=u.bio||'';
+        targetU=uid;
+        document.getElementById('m-profile').style.display='flex';
+    } catch(e){console.error(e);}
+}
+function startDM() {
+    if(!targetU)return;
+    document.getElementById('m-profile').style.display='none';
+    socket.emit('start_dm',{myUid:my.uid,targetUid:targetU});
+}
+socket.on('force_join_dm', g => {
+    window._myGroups = window._myGroups || [];
+    const found = window._myGroups.find(x=>x.groupId===g.groupId);
+    if(!found) window._myGroups.push(g);
+    renderGroupList();
+    switchRoom(g.groupId, g.name, g.owner, true);
+});
+
+function openCreateGroup() {
+    document.getElementById('ng-name').value='';
+    document.getElementById('ng-desc').value='';
+    document.getElementById('m-create-group').style.display='flex';
+    toggleSidebar(false);
+}
+function createGroup() {
+    const name=document.getElementById('ng-name').value.trim();
+    if(!name)return alert('Введи название');
+    socket.emit('create_group',{name,description:document.getElementById('ng-desc').value.trim(),uid:my.uid});
+    document.getElementById('m-create-group').style.display='none';
+}
+
+async function openCurRoomInfo() {
+    if(curRoom==='Main'||curRoomIsDirect)return;
+    try {
+        const res=await fetch('/group/'+curRoom+'/members');
+        const data=await res.json();
+        const g=data.group, members=data.members, isOwner=g.owner===my.uid;
+        document.getElementById('gi-name').innerText=g.name;
+        document.getElementById('gi-id').innerText='ID: '+g.groupId;
+        document.getElementById('gi-desc').innerText=g.description||'';
+        document.getElementById('gi-av').innerHTML=g.avatar?'<img src="'+g.avatar+'">':'👥';
+        document.getElementById('gi-edit').style.display=isOwner?'block':'none';
+        if(isOwner){document.getElementById('gi-edit-name').value=g.name;document.getElementById('gi-edit-desc').value=g.description||'';}
+        document.getElementById('gi-invite').style.display=isOwner?'block':'none';
+        document.getElementById('gi-danger').style.display=isOwner?'block':'none';
+        const ml=document.getElementById('gi-members');
+        ml.innerHTML='';
+        members.forEach(u=>{
+            const row=document.createElement('div');row.className='member-row';
+            const ob=u.uid===g.owner?'<span class="owner-badge">владелец</span>':'';
+            const kb=isOwner&&u.uid!==my.uid?'<button class="member-kick" onclick="kickMember(\''+u.uid+'\')">&#x2715;</button>':'';
+            row.innerHTML='<img class="member-av" src="'+(u.avatar||'https://i.imgur.com/6VBx3io.png')+'">'+'<div class="member-info" style="cursor:pointer"><div class="member-name">'+(u.displayName||u.login)+' '+ob+'</div><div class="member-uid">'+u.uid+'</div></div>'+kb;
+            row.querySelector('.member-info').onclick=()=>showUser(u.uid);
+            ml.appendChild(row);
+        });
+        document.getElementById('m-group-info').style.display='flex';
+    } catch(e){console.error(e);}
+}
+async function saveGroupInfo() {
+    const name=document.getElementById('gi-edit-name').value.trim();
+    const description=document.getElementById('gi-edit-desc').value.trim();
+    await fetch('/update_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({groupId:curRoom,ownerUid:my.uid,name,description})});
+    curRoomName=name; document.getElementById('rtitle').innerText=name; document.getElementById('gi-name').innerText=name;
+}
+function inviteUser() {
+    const uid=document.getElementById('gi-invite-uid').value.trim();if(!uid)return;
+    socket.emit('add_to_group',{groupId:curRoom,ownerUid:my.uid,targetUid:uid});
+    document.getElementById('gi-invite-uid').value='';
+    showToast('Приглашение отправлено!');
+}
+function kickMember(uid) { if(!confirm('Удалить участника?'))return; socket.emit('kick_member',{groupId:curRoom,ownerUid:my.uid,targetUid:uid}); openCurRoomInfo(); }
+function deleteGroup() { if(!confirm('Удалить группу?'))return; socket.emit('delete_group',{groupId:curRoom,ownerUid:my.uid}); document.getElementById('m-group-info').style.display='none'; }
+socket.on('kicked_from_group',({groupId})=>{if(curRoom===groupId){switchRoom('Main','Общий чат','',false);showToast('Вас удалили из группы');}});
+socket.on('group_deleted',({groupId})=>{if(curRoom===groupId){switchRoom('Main','Общий чат','',false);showToast('Группа удалена');}});
+socket.on('group_updated',g=>{if(curRoom===g.groupId){document.getElementById('rtitle').innerText=g.name;curRoomName=g.name;}});
+</script>
+</body>
+</html>

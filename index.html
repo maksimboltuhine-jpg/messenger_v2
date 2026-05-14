@@ -41,10 +41,7 @@ button:hover { opacity: 0.85; }
 .u-av img { width: 100%; height: 100%; object-fit: cover; }
 .edited-mark { font-size: 10px; color: #555; margin-top: 3px; }
 .reply-preview { border-left: 3px solid var(--green); padding-left: 8px; margin-bottom: 6px; font-size: 11px; color: #777; }
-.video-circle
-
-
--wrap { width: 200px; }
+.video-circle-wrap { width: 200px; }
 .video-circle { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--green); display: block; background: #000; cursor: pointer; }
 #pre-box { display: none; padding: 10px; background: #111; border-top: 1px solid var(--border); }
 #pre-img { max-height: 100px; border-radius: 8px; display: none; }
@@ -81,10 +78,7 @@ button:hover { opacity: 0.85; }
 .btn-danger { background: #ff3333; color: #fff; }
 .btn-secondary { background: #1a1a1a; color: #eee; border: 1px solid var(--border); }
 .group-av { width: 70px; height: 70px; border-radius: 14px; border: 2px solid var(--green); background: #222; font-size: 28px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto 10px; }
-.group
-
-
--av img { width: 100%; height: 100%; border-radius: 12px; object-fit: cover; }
+.group-av img { width: 100%; height: 100%; border-radius: 12px; object-fit: cover; }
 .members-list { margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
 .member-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #111; }
 .member-row:last-child { border-bottom: none; }
@@ -300,10 +294,7 @@ button:hover { opacity: 0.85; }
         <button onclick="inviteUser()">+ Добавить</button>
       </div>
     </div>
-    <div
-
-
-id="gi-danger" style="display:none;margin-top:15px">
+    <div id="gi-danger" style="display:none;margin-top:15px">
       <button class="btn-danger" style="width:100%" onclick="deleteGroup()">Удалить группу</button>
     </div>
   </div>
@@ -542,10 +533,7 @@ async function openVideoRec() {
 }
 function startVideoRec() {
     videoChunks=[];
-    const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?
-
-
-'video/webm;codecs=vp9,opus':'video/webm';
+    const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';
     videoRecorder=new MediaRecorder(videoStream,{mimeType:mime});
     videoRecorder.ondataavailable=e=>{if(e.data.size>0)videoChunks.push(e.data);};
     videoRecorder.onstop=async()=>{
@@ -628,8 +616,7 @@ function showJoinRequest(req) {
     const panel=document.getElementById('join-requests-panel');
     const card=document.createElement('div');
     card.className='jreq-card'; card.id='jreq_'+req._id;
-    card.innerHTML='<div class="jreq-title">ЗАЯВКА В ГРУППУ</div><div class="jreq-text"><b>'+req.fromName+'</b> '+req.fromUid+'
-хочет вступить в <b>'+(req.groupName||req.groupId)+'</b></div><div class="jreq-btns"><button onclick="handleJoin(\''+req._id+'\',true)">Принять</button><button class="btn-reject" onclick="handleJoin(\''+req._id+'\',false)">Отклонить</button></div>';
+    card.innerHTML='<div class="jreq-title">ЗАЯВКА В ГРУППУ</div><div class="jreq-text"><b>'+req.fromName+'</b> '+req.fromUid+'<br>хочет вступить в <b>'+(req.groupName||req.groupId)+'</b></div><div class="jreq-btns"><button onclick="handleJoin(\''+req._id+'\',true)">Принять</button><button class="btn-reject" onclick="handleJoin(\''+req._id+'\',false)">Отклонить</button></div>';
     panel.appendChild(card);
 }
 function handleJoin(requestId,accept) {

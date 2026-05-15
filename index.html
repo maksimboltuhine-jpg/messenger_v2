@@ -41,7 +41,10 @@ button:hover { opacity: 0.85; }
 .u-av img { width: 100%; height: 100%; object-fit: cover; }
 .edited-mark { font-size: 10px; color: #555; margin-top: 3px; }
 .reply-preview { border-left: 3px solid var(--green); padding-left: 8px; margin-bottom: 6px; font-size: 11px; color: #777; }
-.video-circle-wrap { width: 200px; }
+.video-circle
+
+
+-wrap { width: 200px; }
 .video-circle { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid var(--green); display: block; background: #000; cursor: pointer; }
 #pre-box { display: none; padding: 10px; background: #111; border-top: 1px solid var(--border); }
 #pre-img { max-height: 100px; border-radius: 8px; display: none; }
@@ -78,7 +81,10 @@ button:hover { opacity: 0.85; }
 .btn-danger { background: #ff3333; color: #fff; }
 .btn-secondary { background: #1a1a1a; color: #eee; border: 1px solid var(--border); }
 .group-av { width: 70px; height: 70px; border-radius: 14px; border: 2px solid var(--green); background: #222; font-size: 28px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto 10px; }
-.group-av img { width: 100%; height: 100%; border-radius: 12px; object-fit: cover; }
+.group
+
+
+-av img { width: 100%; height: 100%; border-radius: 12px; object-fit: cover; }
 .members-list { margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
 .member-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #111; }
 .member-row:last-child { border-bottom: none; }
@@ -99,7 +105,7 @@ button:hover { opacity: 0.85; }
 .jreq-btns button { flex: 1; padding: 7px; font-size: 12px; border-radius: 8px; }
 .btn-reject { background: #ff3333; color: #fff; }
 #vid-rec-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2500; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-#vid-preview { width: 260px; height: 260px; border-radius: 50%; object-fit: cover; border: 4px solid var(--green); background: #000; transform: scaleX(-1); }
+#vid-preview { width: 260px; height: 260px; border-radius: 50%; object-fit: cover; border: 4px solid var(--green); background: #000; }
 #vid-rec-status { color: var(--green); font-weight: bold; font-size: 14px; }
 .vid-btns { display: flex; gap: 16px; }
 .vid-btns button { padding: 12px 24px; font-size: 14px; border-radius: 14px; }
@@ -119,6 +125,7 @@ button:hover { opacity: 0.85; }
   <div class="box">
     <h2 id="atitle" style="text-align:center;color:var(--green);margin:0">ВХОД</h2>
     <input type="text" id="l" placeholder="Логин">
+    <input type="email" id="em" placeholder="Email (для регистрации)">
     <input type="password" id="p" placeholder="Пароль">
     <button onclick="auth()">ГОТОВО</button>
     <div style="text-align:center;font-size:12px;color:#555;cursor:pointer" onclick="isReg=!isReg;document.getElementById('atitle').innerText=isReg?'РЕГИСТРАЦИЯ':'ВХОД'">Сменить режим</div>
@@ -215,6 +222,7 @@ button:hover { opacity: 0.85; }
       </div>
       <button onclick="saveMyProfile()">Сохранить</button>
       <button class="btn-danger" onclick="logout()">Выйти</button>
+      <button class="btn-danger" onclick="deleteAccount()" style="background:#880000">Удалить аккаунт</button>
     </div>
   </div>
 </div>
@@ -290,7 +298,9 @@ button:hover { opacity: 0.85; }
     <div class="members-list" id="gi-members"></div>
     <div id="gi-invite" style="display:none">
       <div class="invite-row">
-        <input type="text" id="gi-invite-uid" placeholder="UID (#0000)">
+
+
+<input type="text" id="gi-invite-uid" placeholder="UID (#0000)">
         <button onclick="inviteUser()">+ Добавить</button>
       </div>
     </div>
@@ -298,6 +308,13 @@ button:hover { opacity: 0.85; }
       <button class="btn-danger" style="width:100%" onclick="deleteGroup()">Удалить группу</button>
     </div>
   </div>
+</div>
+
+<!-- MEDIA VIEWER -->
+<div id="media-viewer" onclick="closeMediaViewer()">
+    <button id="media-viewer-close" onclick="closeMediaViewer()">&#x2715;</button>
+    <img id="mv-img" src="" style="display:none" onclick="event.stopPropagation()">
+    <video id="mv-vid" controls style="display:none" onclick="event.stopPropagation()"></video>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -315,7 +332,8 @@ if (my) { document.getElementById('auth').style.display = 'none'; init(); }
 async function auth() {
     const l = document.getElementById('l').value.trim(), p = document.getElementById('p').value;
     if (!l || !p) return alert('Заполни все поля');
-    const res = await fetch('/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({login:l,password:p,isReg}) });
+    const email = document.getElementById('em').value;
+    const res = await fetch('/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({login:l,password:p,isReg,email}) });
     const data = await res.json();
     if (data.error) return alert(data.error);
     my = data; localStorage.setItem('msgr_v14_user', JSON.stringify(my)); location.reload();
@@ -406,9 +424,9 @@ function add(m, hist) {
     if (m.text) h += '<div class="msg-text">'+escHtml(m.text)+'</div>';
     if (m.edited) h += '<div class="edited-mark">изменено</div>';
     if (m.fileUrl) {
-        if (m.isVideo) h += '<div class="video-circle-wrap"><video class="video-circle" src="'+m.fileUrl+'" preload="metadata" onclick="this.paused?this.play():this.pause()" playsinline></video></div>';
+        if (m.isVideo) h += '<div class="video-circle-wrap"><video class="video-circle" src="'+m.fileUrl+'" preload="metadata" onclick="openMediaViewer(this.src,true)" playsinline></video></div>';
         else if (m.fileType&&m.fileType.includes('audio')) h += '<audio src="'+m.fileUrl+'" controls style="width:200px;height:30px"></audio>';
-        else if (m.fileType&&m.fileType.includes('image')) h += '<img src="'+m.fileUrl+'" style="max-width:100%;border-radius:10px;cursor:pointer" onclick="window.open(this.src)">';
+        else if (m.fileType&&m.fileType.includes('image')) h += '<img src="'+m.fileUrl+'" style="max-width:100%;border-radius:10px;cursor:pointer" onclick="openMediaViewer(this.src,false)">';
         else h += '<a href="'+m.fileUrl+'" target="_blank" style="color:var(--green);font-size:11px">Файл: '+(m.fileName||'')+'</a>';
     }
     d.innerHTML = h;
@@ -523,7 +541,10 @@ async function toggleRec() {
 
 async function openVideoRec() {
     try {
-        videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:400,height:400},audio:true});
+        videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:
+
+
+'user'},audio:true});
         document.getElementById('vid-preview').srcObject=videoStream;
         document.getElementById('vid-rec-modal').style.display='flex';
         document.getElementById('vid-rec-status').innerText='ГОТОВ К ЗАПИСИ';
@@ -616,7 +637,8 @@ function showJoinRequest(req) {
     const panel=document.getElementById('join-requests-panel');
     const card=document.createElement('div');
     card.className='jreq-card'; card.id='jreq_'+req._id;
-    card.innerHTML='<div class="jreq-title">ЗАЯВКА В ГРУППУ</div><div class="jreq-text"><b>'+req.fromName+'</b> '+req.fromUid+'<br>хочет вступить в <b>'+(req.groupName||req.groupId)+'</b></div><div class="jreq-btns"><button onclick="handleJoin(\''+req._id+'\',true)">Принять</button><button class="btn-reject" onclick="handleJoin(\''+req._id+'\',false)">Отклонить</button></div>';
+    card.innerHTML='<div class="jreq-title">ЗАЯВКА В ГРУППУ</div><div class="jreq-text"><b>'+req.fromName+'</b> '+req.fromUid+'
+хочет вступить в <b>'+(req.groupName||req.groupId)+'</b></div><div class="jreq-btns"><button onclick="handleJoin(\''+req._id+'\',true)">Принять</button><button class="btn-reject" onclick="handleJoin(\''+req._id+'\',false)">Отклонить</button></div>';
     panel.appendChild(card);
 }
 function handleJoin(requestId,accept) {
@@ -662,7 +684,7 @@ async function showUser(uid) {
     if(!uid)return;
     if(uid===my.uid){openMyProfile();return;}
     try {
-        const res=await fetch('/user/'+encodeURIComponent(uid));
+        const res=await fetch('/user/'+uid);
         if(!res.ok)return;
         const u=await res.json();
         document.getElementById('p-av').src=u.avatar||'https://i.imgur.com/6VBx3io.png';
@@ -740,10 +762,52 @@ function inviteUser() {
     showToast('Приглашение отправлено!');
 }
 function kickMember(uid) { if(!confirm('Удалить участника?'))return; socket.emit('kick_member',{groupId:curRoom,ownerUid:my.uid,targetUid:uid}); openCurRoomInfo(); }
-function deleteGroup() { if(!confirm('Удалить группу?'))return; socket.emit('delete_group',{groupId:curRoom,ownerUid:my.uid}); document.getElementById('m-group-info').style.display='none'; }
+function deleteGroup() { if(!confirm('Удалить группу?'))return; socket.emit('delete_group',{groupId:curRoom,ownerUid:my.uid}); document.getElementById('m-group-info').style.display='
+
+
+none'; }
 socket.on('kicked_from_group',({groupId})=>{if(curRoom===groupId){switchRoom('Main','Общий чат','',false);showToast('Вас удалили из группы');}});
 socket.on('group_deleted',({groupId})=>{if(curRoom===groupId){switchRoom('Main','Общий чат','',false);showToast('Группа удалена');}});
 socket.on('group_updated',g=>{if(curRoom===g.groupId){document.getElementById('rtitle').innerText=g.name;curRoomName=g.name;}});
+
+async function deleteAccount() {
+    if (!confirm('Удалить аккаунт навсегда? Это действие нельзя отменить.')) return;
+    const pass = prompt('Введи свой пароль для подтверждения:');
+    if (!pass) return;
+    const res = await fetch('/delete_account', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({uid: my.uid, password: pass})
+    });
+    const data = await res.json();
+    if (data.error) return alert(data.error);
+    alert('Аккаунт удалён.');
+    logout();
+}
+// MEDIA VIEWER
+function openMediaViewer(src, isVideo) {
+    const mv = document.getElementById('media-viewer');
+    const img = document.getElementById('mv-img');
+    const vid = document.getElementById('mv-vid');
+    if (isVideo) {
+        img.style.display = 'none';
+        vid.style.display = 'block';
+        vid.src = src;
+        vid.play();
+    } else {
+        vid.style.display = 'none';
+        img.style.display = 'block';
+        img.src = src;
+    }
+    mv.style.display = 'flex';
+}
+function closeMediaViewer() {
+    const vid = document.getElementById('mv-vid');
+    vid.pause(); vid.src = '';
+    document.getElementById('mv-img').src = '';
+    document.getElementById('media-viewer').style.display = 'none';
+}
+
 </script>
 </body>
 </html>

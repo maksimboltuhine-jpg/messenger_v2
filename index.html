@@ -662,7 +662,7 @@ async function showUser(uid) {
     if(!uid)return;
     if(uid===my.uid){openMyProfile();return;}
     try {
-        const res=await fetch('/user/'+uid);
+        const res=await fetch('/user/'+encodeURIComponent(uid));
         if(!res.ok)return;
         const u=await res.json();
         document.getElementById('p-av').src=u.avatar||'https://i.imgur.com/6VBx3io.png';

@@ -94,10 +94,7 @@ app.post('/update_profile', async (req, res) => {
     if (bio !== undefined) upd.bio = bio;
     if (displayName !== undefined) upd.displayName = displayName;
     if (status !== undefined) upd.status = status;
-    const user = awa
-
-
-it User.findOneAndUpdate({ uid }, upd, { new: true });
+    const user = await User.findOneAndUpdate({ uid }, upd, { new: true });
     if (!user) return res.status(404).json({ error: "Не найден" });
     res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName, status: user.status, email: user.email || '' });
 });

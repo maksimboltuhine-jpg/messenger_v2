@@ -21,6 +21,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     login: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     uid: { type: String, unique: true },
+    email: { type: String, default: '' },
     avatar: { type: String, default: '' },
     bio: { type: String, default: '' },
     displayName: { type: String, default: '' },
@@ -62,25 +63,26 @@ mongoose.connect(MONGO_URI).then(() => {
 });
 
 app.post('/auth', async (req, res) => {
-    const { login, password, isReg } = req.body;
+    const { login, password, isReg, email } = req.body;
     try {
         let user = await User.findOne({ login });
         if (isReg) {
             if (user) return res.status(400).json({ error: "Логин занят" });
             const hash = await bcrypt.hash(password, 7);
             const uid = '#' + Math.floor(1000 + Math.random() * 9000);
-            user = new User({ login, password: hash, uid, displayName: login });
+            user = new User({ login, password: hash, uid, displayName: login, email: email || '' });
             await user.save();
         } else {
             if (!user || !(await bcrypt.compare(password, user.password))) return res.status(400).json({ error: "Ошибка входа" });
         }
-        res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName || user.login, status: user.status });
+        res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName || user.login, status: user.status, email: user.email || '' });
     } catch (e) { res.status(500).json({ error: "Ошибка сервера" }); }
 });
 
 app.get('/user/:uid', async (req, res) => {
     try {
-        const user = await User.findOne({ uid: req.params.uid }, 'login uid avatar bio displayName status');
+        const uid = decodeURIComponent(req.params.uid);
+        const user = await User.findOne({ uid }, 'login uid avatar bio displayName status email');
         if (user) res.json(user); else res.status(404).json({ error: "Не найден" });
     } catch (e) { res.status(500).json({ error: "Ошибка" }); }
 });
@@ -92,9 +94,25 @@ app.post('/update_profile', async (req, res) => {
     if (bio !== undefined) upd.bio = bio;
     if (displayName !== undefined) upd.displayName = displayName;
     if (status !== undefined) upd.status = status;
-    const user = await User.findOneAndUpdate({ uid }, upd, { new: true });
+    const user = awa
+
+
+it User.findOneAndUpdate({ uid }, upd, { new: true });
     if (!user) return res.status(404).json({ error: "Не найден" });
-    res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName, status: user.status });
+    res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName, status: user.status, email: user.email || '' });
+});
+
+app.post('/delete_account', async (req, res) => {
+    const { uid, password } = req.body;
+    try {
+        const user = await User.findOne({ uid });
+        if (!user) return res.status(404).json({ error: "Не найден" });
+        if (!(await bcrypt.compare(password, user.password))) return res.status(400).json({ error: "Неверный пароль" });
+        await User.deleteOne({ uid });
+        await Group.updateMany({ members: uid }, { $pull: { members: uid } });
+        await Msg.deleteMany({ uid });
+        res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: "Ошибка" }); }
 });
 
 app.get('/group/:groupId/members', async (req, res) => {
@@ -159,7 +177,10 @@ io.on('connection', (socket) => {
     socket.on('create_group', async (d) => {
         const gid = 'room_' + Math.random().toString(36).substr(2, 9);
         await new Group({ name: d.name, groupId: gid, owner: d.uid, members: [d.uid], description: d.description || '' }).save();
-        socket.emit('my_groups', await Group.find({ members: d.uid }));
+        socket.emit('my_groups', await Group
+
+
+.find({ members: d.uid }));
     });
 
     socket.on('add_to_group', async (d) => {
@@ -243,7 +264,9 @@ io.on('connection', (socket) => {
             const dmName = t.displayName || t.login;
             g = new Group({ name: dmName, groupId: 'dm_' + Math.random().toString(36).substr(2, 9), owner: 'system', members: [myUid, targetUid], isDirect: true });
             await g.save();
-            for (let [id, u] of online) if (u.uid === targetUid) io.to(id).emit('my_groups', await Group.find({ members: u.uid }));
+
+
+for (let [id, u] of online) if (u.uid === targetUid) io.to(id).emit('my_groups', await Group.find({ members: u.uid }));
         }
         socket.emit('force_join_dm', g);
         socket.emit('my_groups', await Group.find({ members: myUid }));

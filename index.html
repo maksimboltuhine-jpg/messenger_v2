@@ -705,7 +705,7 @@ function showJoinRequest(req) {
     const rid = req._id.toString();
     card.innerHTML = '<div class="jreq-title">ЗАЯВКА В ГРУППУ</div>'
         + '<div class="jreq-text"><b>' + req.fromName + '</b> '
-        + req.fromUid + '
+        + (req.groupName || req.groupId) + "</b></div>" + "<div class=\"jreq-btns\"><button onclick=\"handleJoin(\x27" + rid + "\x27,true)\">OK</button><button class=\"btn-reject\" onclick=\"handleJoin(\x27" + rid + "\x27,false)\">X</button></div>"; panel.appendChild(card);
 '
         + 'хочет вступить в <b>' + (req.groupName || req.groupId) + '</b></div>' + '<div class="jreq-btns"><button onclick="handleJoin('' + rid + '',true)">OK</button><button class="btn-reject" onclick="handleJoin('' + rid + '',false)">X</button></div>'; panel.appendChild(card);
         + (req.groupName || req.groupId)

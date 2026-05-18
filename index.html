@@ -213,7 +213,10 @@ button:hover { opacity: 0.85; }
     <div class="modal-title">МОЙ ПРОФИЛЬ <span class="modal-close" onclick="document.getElementById('m-myprofile').style.display='none'">&#x2715;</span></div>
     <div class="profile-av-wrap">
       <img id="my-av-img" class="profile-av" src="https://i.imgur.com/6VBx3io.png">
-      <button class="av-edit-btn" onclick="document.getElementById('av-file').click()">&#x270F;</button>
+      <button class="av-edit-btn" onclick=
+
+
+"document.getElementById('av-file').click()">&#x270F;</button>
       <input type="file" id="av-file" hidden accept="image/*" onchange="uploadAvatar(this)">
     </div>
     <div class="edit-form">
@@ -707,13 +710,7 @@ function showJoinRequest(req) {
         + '<div class="jreq-text"><b>' + req.fromName + '</b> ' + req.fromUid + '
 хочет вступить в <b>' + (req.groupName || req.groupId) + '</b></div>'
         + '<div class="jreq-btns">'
-        + '<button onclick="handleJoin('' + rid + '',true)">Принять</button>' + '<button class="btn-reject" onclick="handleJoin('' + rid + '',false)">Отклонить</button>' + '</div>';
-        + '<button class="btn-reject" onclick="handleJoin('' + rid + '',false)">Отклонить</button>'
-        + '</div>';
-        + '<button onclick="handleJoin('' + rid + '',true)">Принять</button>' + '<button class="btn-reject" onclick="handleJoin('' + rid + '',false)">Отклонить</button>' + '</div>';
-        + '<button class="btn-reject" onclick="handleJoin('' + rid + '',false)">Отклонить</button>'
-        + '</div>';
-        + '<button onclick="handleJoin('' + rid + '',true)">Принять</button>' + '<button class="btn-reject" onclick="handleJoin('' + rid + '',false)">Отклонить</button>' + '</div>';
+        + '<button onclick="handleJoin(\'' + rid + '\',true)">Принять</button>'
         + '<button class="btn-reject" onclick="handleJoin(\'' + rid + '\',false)">Отклонить</button>'
         + '</div>';
     panel.appendChild(card);
@@ -850,3 +847,6 @@ socket.on('group_updated', g => { if (curRoom === g.groupId) { document.getEleme
 </script>
 </body>
 </html>
+
+
+

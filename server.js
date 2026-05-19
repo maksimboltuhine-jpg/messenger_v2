@@ -80,7 +80,7 @@ app.post('/auth', async (req, res) => {
 
 app.get('/user/:uid', async (req, res) => {
     try {
-        const user = await User.findOne({ uid: decodeURIComponent(req.params.uid) }, 'login uid avatar bio displayName status');
+        const user = await User.findOne({ uid: req.params.uid }, 'login uid avatar bio displayName status');
         if (user) res.json(user); else res.status(404).json({ error: "Не найден" });
     } catch (e) { res.status(500).json({ error: "Ошибка" }); }
 });

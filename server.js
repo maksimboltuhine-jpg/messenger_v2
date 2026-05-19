@@ -262,10 +262,7 @@ io.on('connection', (socket) => {
 
     socket.on('delete_msg', async (d) => {
         const msg = await Msg.findById(d.msgId);
-        if (!msg || m
-
-
-sg.uid !== d.uid) return;
+        if (!msg || msg.uid !== d.uid) return;
         await Msg.deleteOne({ _id: d.msgId });
         io.to(msg.room).emit('msg_deleted', { msgId: d.msgId });
     });

@@ -80,7 +80,7 @@ app.post('/auth', async (req, res) => {
 
 app.get('/user/:uid', async (req, res) => {
     try {
-        const user = await User.findOne({ uid: req.params.uid }, 'login uid avatar bio displayName status');
+        const user = await User.findOne({ uid: decodeURIComponent(req.params.uid) }, 'login uid avatar bio displayName status');
         if (user) res.json(user); else res.status(404).json({ error: "Не найден" });
     } catch (e) { res.status(500).json({ error: "Ошибка" }); }
 });
@@ -262,7 +262,10 @@ io.on('connection', (socket) => {
 
     socket.on('delete_msg', async (d) => {
         const msg = await Msg.findById(d.msgId);
-        if (!msg || msg.uid !== d.uid) return;
+        if (!msg || m
+
+
+sg.uid !== d.uid) return;
         await Msg.deleteOne({ _id: d.msgId });
         io.to(msg.room).emit('msg_deleted', { msgId: d.msgId });
     });

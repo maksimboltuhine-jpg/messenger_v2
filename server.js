@@ -21,6 +21,7 @@ const User = mongoose.model('User', new mongoose.Schema({
     login: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     uid: { type: String, unique: true },
+    email: { type: String, default: '' },
     avatar: { type: String, default: '' },
     bio: { type: String, default: '' },
     displayName: { type: String, default: '' },
@@ -62,25 +63,26 @@ mongoose.connect(MONGO_URI).then(() => {
 });
 
 app.post('/auth', async (req, res) => {
-    const { login, password, isReg } = req.body;
+    const { login, password, isReg, email } = req.body;
     try {
         let user = await User.findOne({ login });
         if (isReg) {
             if (user) return res.status(400).json({ error: "Логин занят" });
             const hash = await bcrypt.hash(password, 7);
             const uid = '#' + Math.floor(1000 + Math.random() * 9000);
-            user = new User({ login, password: hash, uid, displayName: login });
+            user = new User({ login, password: hash, uid, displayName: login, email: email || '' });
             await user.save();
         } else {
             if (!user || !(await bcrypt.compare(password, user.password))) return res.status(400).json({ error: "Ошибка входа" });
         }
-        res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName || user.login, status: user.status });
+        res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName || user.login, status: user.status, email: user.email || '' });
     } catch (e) { res.status(500).json({ error: "Ошибка сервера" }); }
 });
 
 app.get('/user/:uid', async (req, res) => {
     try {
-        const user = await User.findOne({ uid: decodeURIComponent(req.params.uid) }, 'login uid avatar bio displayName status');
+        const uid = decodeURIComponent(req.params.uid);
+        const user = await User.findOne({ uid }, 'login uid avatar bio displayName status email');
         if (user) res.json(user); else res.status(404).json({ error: "Не найден" });
     } catch (e) { res.status(500).json({ error: "Ошибка" }); }
 });
@@ -94,7 +96,20 @@ app.post('/update_profile', async (req, res) => {
     if (status !== undefined) upd.status = status;
     const user = await User.findOneAndUpdate({ uid }, upd, { new: true });
     if (!user) return res.status(404).json({ error: "Не найден" });
-    res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName, status: user.status });
+    res.json({ login: user.login, uid: user.uid, avatar: user.avatar, bio: user.bio, displayName: user.displayName, status: user.status, email: user.email || '' });
+});
+
+app.post('/delete_account', async (req, res) => {
+    const { uid, password } = req.body;
+    try {
+        const user = await User.findOne({ uid });
+        if (!user) return res.status(404).json({ error: "Не найден" });
+        if (!(await bcrypt.compare(password, user.password))) return res.status(400).json({ error: "Неверный пароль" });
+        await User.deleteOne({ uid });
+        await Group.updateMany({ members: uid }, { $pull: { members: uid } });
+        await Msg.deleteMany({ uid });
+        res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: "Ошибка" }); }
 });
 
 app.get('/group/:groupId/members', async (req, res) => {
@@ -243,7 +258,9 @@ io.on('connection', (socket) => {
             const dmName = t.displayName || t.login;
             g = new Group({ name: dmName, groupId: 'dm_' + Math.random().toString(36).substr(2, 9), owner: 'system', members: [myUid, targetUid], isDirect: true });
             await g.save();
-            for (let [id, u] of online) if (u.uid === targetUid) io.to(id).emit('my_groups', await Group.find({ members: u.uid }));
+
+
+for (let [id, u] of online) if (u.uid === targetUid) io.to(id).emit('my_groups', await Group.find({ members: u.uid }));
         }
         socket.emit('force_join_dm', g);
         socket.emit('my_groups', await Group.find({ members: myUid }));
@@ -260,12 +277,25 @@ io.on('connection', (socket) => {
         io.to(d.room).emit('renderMsg', { ...d, _id: m._id, createdAt: m.createdAt });
     });
 
+    socket.on('delete_dm', async (d) => {
+        const g = await Group.findOne({ groupId: d.groupId, isDirect: true, members: d.uid });
+        if (!g) return;
+        if (!g.members.includes(d.uid)) return;
+        await Msg.deleteMany({ room: d.groupId });
+        await Group.deleteOne({ groupId: d.groupId });
+        for (const uid of g.members) {
+            for (let [id, u] of online) {
+                if (u.uid === uid) {
+                    io.to(id).emit('dm_deleted', { groupId: d.groupId });
+                    io.to(id).emit('my_groups', await Group.find({ members: u.uid }));
+                }
+            }
+        }
+    });
+
     socket.on('delete_msg', async (d) => {
         const msg = await Msg.findById(d.msgId);
-        if (!msg || m
-
-
-sg.uid !== d.uid) return;
+        if (!msg || msg.uid !== d.uid) return;
         await Msg.deleteOne({ _id: d.msgId });
         io.to(msg.room).emit('msg_deleted', { msgId: d.msgId });
     });
